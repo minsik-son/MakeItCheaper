@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Cheapazon",
+    "name": "MakeItCheaper",
     "version": "1.0.0",
     "description": "Amazon-AliExpress Price Optimizer",
     "permissions": [

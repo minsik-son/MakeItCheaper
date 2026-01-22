@@ -15,7 +15,8 @@ export const cleanTitle = (title: string): string => {
 
 export const getProductDetails = (): ProductDetails | null => {
     try {
-        const asinMatch = window.location.pathname.match(/\/dp\/([A-Z0-9]{10})/);
+        // const asinMatch = window.location.pathname.match(/\/dp\/([A-Z0-9]{10})/);
+        const asinMatch = window.location.pathname.match(/(?:\/dp\/|\/gp\/aw\/d\/|\/product\/)([A-Z0-9]{10})/);
         const asin = asinMatch ? asinMatch[1] : '';
 
         if (!asin) return null;

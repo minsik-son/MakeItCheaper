@@ -1,7 +1,7 @@
-console.log('Cheapazon Background Script Running');
+console.log('MakeItCheaper Background Script Running');
 
 chrome.runtime.onInstalled.addListener(() => {
-    console.log('Cheapazon Extension Installed');
+    console.log('MakeItCheaper Extension Installed');
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
