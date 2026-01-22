@@ -22,7 +22,11 @@ export const extractKeywords = async (fullTitle: string): Promise<string> => {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.0-flash-lite",
+            generationConfig: { responseMimeType: "application/json" }
+        });
+        //const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
 
         /*
         const prompt = `
@@ -51,12 +55,20 @@ export const extractKeywords = async (fullTitle: string): Promise<string> => {
         5. **REMOVE FLUFF**: Remove subjective marketing words (Premium, Gift for men, High Quality, 2025 Fall, Upgraded).
         6. **OUTPUT FORMAT**: Return a single string of 3 to 6 keywords tailored for the AliExpress search engine.
 
-        Search Query: ${fullTitle}`;
+        Search Query: ${fullTitle}
+        Return JSON with a single key "keywords".
+        `;
+
 
         const result = await model.generateContent(prompt);
-        const text = result.response.text().trim();
-        console.log(`Gemini extracted keywords: "${text}"`);
-        return text;
+
+        const responseText = result.response.text();
+        const jsonResponse = JSON.parse(responseText);
+        const keywords = jsonResponse.keywords;
+        //const text = result.response.text().trim();
+
+        console.log(`Gemini extracted keywords: "${keywords}"`);
+        return keywords;
 
     } catch (error) {
         console.error('Gemini Error:', error);
@@ -129,7 +141,7 @@ export const compareProductImages = async (
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Using 1.5-flash as it is optimized for multimodal high-volume tasks
+        // Using gemini-2.0-flash-lite as it is optimized for multimodal high-volume tasks
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
 
         console.log('Downloading images for comparison...');
