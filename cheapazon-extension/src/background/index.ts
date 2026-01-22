@@ -7,7 +7,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === 'SEARCH_ALI') {
         const { asin, title, price, imageUrl, currency, domain } = message.payload;
-        const API_BASE_URL = 'http://localhost:3000'; // Hardcoded for dev, or inject via build
+        const API_BASE_URL = 'https://make-it-cheaper.vercel.app/'; // Hardcoded for dev, or inject via build
 
         console.log('[Background] Searching AliExpress for:', title);
 

@@ -154,7 +154,6 @@ export const searchAliExpress = async (product: AmazonProduct): Promise<AliExpre
         let selectedCandidate = candidates[0];
 
         // [Stage 4] Image Verification (If multiple candidates & image available)
-        console.log('$$$$ step 4 start $$$$')
         if (candidates.length > 1 && product.imageUrl) {
             console.log(`Comparing images for ${candidates.length} candidates...`);
             const candidatesForGemini = candidates.map(c => ({
