@@ -26,23 +26,8 @@ export const extractKeywords = async (fullTitle: string): Promise<string> => {
             model: "gemini-2.0-flash-lite",
             generationConfig: { responseMimeType: "application/json" }
         });
-        //const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
 
         /*
-        const prompt = `
-        You are an expert e-commerce search optimizer.
-        Your task is to extract the most relevant search keywords from a long Amazon product title to find the EXACT same item on AliExpress.
-        
-        Rules:
-        1. Remove brand names if they are generic or likely custom-branded on AliExpress (e.g. "Amazon Basics"). Keep major brands (Nike, Samsung).
-        2. Focus on the core model number and product type.
-        3. Remove adjectives like "Premium", "High Quality".
-        4. Return ONLY the keywords in 6 words or less.
-        
-        Amazon Title: "${fullTitle}"
-        `;
-        */
-
         const prompt = `You are an expert AliExpress Sourcing Agent. Your goal is to find the original OEM factory version of an Amazon product on AliExpress.
 
         Analyze the Amazon Product Title: "${fullTitle}"
@@ -59,7 +44,44 @@ export const extractKeywords = async (fullTitle: string): Promise<string> => {
         Return JSON with a single key "keywords".
         `;
 
+        */
 
+        const prompt = `You are an expert AliExpress Sourcing Agent specializing in identifying OEM factory products.
+        Your goal is to transform a cluttered Amazon title into a high-converting AliExpress search query.
+
+        Amazon Product Title: "${fullTitle}"
+
+        ### STRICT EXTRACTION RULES:
+
+        1. **BRAND & MODEL PURGE**: 
+        - Remove ALL brand names and specific model numbers UNLESS they are globally recognized Tier-1 brands (e.g., Apple, Samsung, Sony, Nike, Tesla).
+        - Specifically delete "private labels," "dropshipping brands," and "obscure alphanumeric model codes" (e.g., Delete "eufy", "Omni C20", "WOLFBOX", "A1234").
+
+        2. **ESSENTIAL PRODUCT NOUNS**: 
+        - Extract the core, generic descriptive nouns that define the object (e.g., "Robot Vacuum", "Mop Combo", "Self Emptying").
+        - Use common industry terms that an OEM factory would use in their listing.
+
+        3. **CRITICAL TECHNICAL SPECS**: 
+        - Keep the performance numbers that distinguish the hardware (e.g., "7000Pa", "3.35-Inch", "160PSI").
+        - Specs are often the only way to find the exact same factory model on AliExpress.
+
+        4. **ACCESSORY COMPATIBILITY**: 
+        - If the item is an accessory, keep the target device name (e.g., "For Tesla Model Y", "For iPhone 15").
+
+        5. **CLEANING & RANKING**: 
+        - Remove marketing "fluff" (Premium, Upgraded, Hands-free, 2026 New).
+        - Arrange keywords by importance: [Core Item] + [Key Spec] + [Defining Feature].
+
+        ### OUTPUT INSTRUCTION:
+        - Return a JSON object with a single key "keywords".
+        - The value must be a string of 3 to 6 optimized keywords.
+
+        Example Input: "eufy Robot Vacuum Omni C20, 7000 Pa, Self Emptying"
+        Example Output: {"keywords": "Robot Vacuum Mop Combo 7000Pa Self Emptying"}
+
+        Search Query: ${fullTitle}
+        Return JSON with a single key "keywords".
+        `;
         const result = await model.generateContent(prompt);
 
         const responseText = result.response.text();
