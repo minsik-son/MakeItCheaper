@@ -8,7 +8,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 import compareRouter from './routes/compare';
-const whitelist = ['https://make-it-cheaper.vercel.app', 'https://make-it-cheaper-git-featur-5ccc15-minsik-sons-projects-d87de25c.vercel.app'];
+const whitelist = ['https://make-it-cheaper.vercel.app', 'https://make-it-cheaper-git-featur-5ccc15-minsik-sons-projects-d87de25c.vercel.app', 'https://make-it-cheaper-8ok8td17g-minsik-sons-projects-d87de25c.vercel.app'];
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
