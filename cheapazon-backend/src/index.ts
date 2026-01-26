@@ -55,7 +55,7 @@ const corsOptions: cors.CorsOptions = {
 
 app.use(cors(corsOptions));
 // Remove redundant app.options('*') unless specifically needed, cors middleware handles it usually.
-// app.options('*', cors(corsOptions)); 
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
