@@ -1,18 +1,18 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import compareRouter from './routes/compare';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-import compareRouter from './routes/compare';
+
 const whitelist = [
   'https://make-it-cheaper.vercel.app',
   'https://make-it-cheaper-git-featur-5ccc15-minsik-sons-projects-d87de25c.vercel.app',
-  'https://make-it-cheaper-8ok8td17g-minsik-sons-projects-d87de25c.vercel.app',
-  'chrome-extension://kcgkbfchonnemoehcooaojbmhnecgghk'
+  'https://make-it-cheaper-8ok8td17g-minsik-sons-projects-d87de25c.vercel.app'
 ];
 
 const corsOptions: cors.CorsOptions = {
@@ -32,7 +32,10 @@ app.use(express.json());
 app.use('/api/compare', compareRouter);
 
 app.get('/', (req, res) => {
-  res.send('Cheapazon Backend is running');
+  res.send('MakeItCheaper Backend is running');
+    console.log("CORS : ", corsOptions);
+    console.log("Whitelist : ", whitelist);
+    console.log("Origin : ", req.headers.origin);
 });
 
 // Export for Vercel
