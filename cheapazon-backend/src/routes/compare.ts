@@ -121,7 +121,7 @@ router.post('/', async (req: Request, res: Response) => {
                                 aliImageUrl: match.imageUrl,
                                 savings: match.savings,
                                 currency: match.currency,
-                                aliProductId: match.aliProductId,
+                                aliProductId: String(match.aliProductId),
                                 lastChecked: new Date()
                             },
                             update: {
@@ -131,7 +131,7 @@ router.post('/', async (req: Request, res: Response) => {
                                 aliImageUrl: match.imageUrl,
                                 savings: match.savings,
                                 currency: match.currency,
-                                aliProductId: match.aliProductId,
+                                aliProductId: String(match.aliProductId),
                                 lastChecked: new Date()
                             }
                         }
@@ -152,7 +152,7 @@ router.post('/', async (req: Request, res: Response) => {
                             aliImageUrl: match.imageUrl,
                             savings: match.savings,
                             currency: match.currency,
-                            aliProductId: match.aliProductId
+                            aliProductId: String(match.aliProductId)
                         }
                     }
                 }
