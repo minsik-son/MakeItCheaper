@@ -98,6 +98,7 @@ export const extractKeywords = async (fullTitle: string): Promise<string> => {
     }
 };
 
+/*
 export const validateProductMatch = async (amazonTitle: string, aliTitle: string, priceRatio: number): Promise<{ isMatch: boolean; confidence: number }> => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return { isMatch: true, confidence: 50 }; // Fail open with low confidence
@@ -149,7 +150,75 @@ export const validateProductMatch = async (amazonTitle: string, aliTitle: string
         return { isMatch: true, confidence: 50 };
     }
 };
+*/
 
+export const validateProductMatch = async (amazonTitle: string, aliTitle: string, priceRatio: number): Promise<{ isMatch: boolean; confidence: number }> => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return { isMatch: true, confidence: 50 };
+
+    try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.0-flash-lite",
+            generationConfig: { responseMimeType: "application/json" }
+        });
+
+        // 프롬프트 수정: 불필요한 설명 제거 및 JSON 스키마 명확화
+        const prompt = `
+        You are a strict e-commerce validation bot.
+        Determine if these two product titles refer to the SAME core product category and type.
+        
+        Compare:
+        1. Amazon: "${amazonTitle}"
+        2. AliExpress: "${aliTitle}"
+        
+        Context: The AliExpress price is ${Math.round(priceRatio * 100)}% of the Amazon price.
+        
+        Rules:
+        - If they are completely different items, confidence must be 0.
+        - If one is an accessory (case, part) and the other is the main unit, confidence must be 0.
+        - If they are the same product type, confidence > 80.
+        
+        Respond with this JSON structure ONLY:
+        {
+            "match": boolean,
+            "confidence": number,
+            "reason": string
+        }
+        `;
+
+        const result = await model.generateContent(prompt);
+        let text = result.response.text();
+
+        // 안전장치: 마크다운 코드 블록 제거 및 공백 제거
+        text = text.replace(/```json|```/g, '').trim();
+
+        console.log(`[DEBUG] Gemini Raw Response: ${text}`); // 이 로그를 통해 실제 응답 확인 가능
+
+        let json;
+        try {
+            json = JSON.parse(text);
+        } catch (e) {
+            console.error("JSON Parse Error. Raw text:", text);
+            return { isMatch: false, confidence: 0 };
+        }
+
+        // 키값 대소문자 방어 로직 (가끔 대문자로 줄 때가 있음)
+        const isMatchRaw = json.match ?? json.Match ?? false;
+        const confidenceRaw = json.confidence ?? json.Confidence ?? 0;
+
+        console.log(`AI Validation: ${isMatchRaw} (${confidenceRaw}%) | Amz: ${amazonTitle.substring(0, 20)}... vs Ali: ${aliTitle.substring(0, 20)}...`);
+
+        return {
+            isMatch: isMatchRaw === true || String(isMatchRaw).toLowerCase() === 'true' || String(isMatchRaw).toUpperCase() === 'YES',
+            confidence: Number(confidenceRaw) || 0
+        };
+
+    } catch (error) {
+        console.error('Gemini Validation Error:', error);
+        return { isMatch: true, confidence: 50 }; // 에러 시 기본값
+    }
+};
 async function urlToGenerativePart(url: string) {
     try {
         const response = await axios.get(url, { responseType: 'arraybuffer' });

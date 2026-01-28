@@ -206,7 +206,6 @@ export const searchAliExpress = async (product: AmazonProduct): Promise<AliExpre
 
         if (candidates.length === 0) {
             console.log('No valid match found after validation.');
-            console.log('---------------------------------------------');
             return null;
         }
 
