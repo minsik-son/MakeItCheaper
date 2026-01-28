@@ -2,6 +2,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import { AmazonProduct, AliExpressProduct } from '../types';
 import { extractKeywords, validateProductMatch, compareProductImages } from './gemini';
+import { calculateLocalScore } from './scoring';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -165,41 +166,95 @@ export const searchAliExpress = async (product: AmazonProduct): Promise<AliExpre
             preCandidates.push({ item, price: itemPrice, savings });
         }
 
-        // Stage 3: AI Semantic Check in Parallel
+        // Stage 3: AI Semantic Check in Parallel (with Fast-Pass)
         const candidates = [];
         let highConfidenceMatch = null;
 
         if (preCandidates.length > 0) {
-            console.log(`Running AI validation for ${preCandidates.length} potential candidates...`);
+            console.log(`[Stage 2.5] Running Fast-Pass scoring for ${preCandidates.length} candidates...`);
 
-            // Create an array of promises for all AI validation calls
-            const validationPromises = preCandidates.map(p => {
-                const priceRatio = p.price / numericPrice;
-                return validateProductMatch(product.title, p.item.product_title, priceRatio);
-            });
+            // 1. Run Local Scoring on all pre-candidates
+            const scoringPromises = preCandidates.map(p =>
+                calculateLocalScore({
+                    amazonTitle: product.title,
+                    amazonImageUrl: product.imageUrl || '',
+                    aliTitle: p.item.product_title,
+                    aliImageUrl: p.item.product_main_image_url
+                })
+            );
 
-            // Await all promises in parallel
-            const validationResults = await Promise.all(validationPromises);
+            const scoringResults = await Promise.all(scoringPromises);
 
-            // Filter for candidates that passed AI validation
+            const fastPassCandidates = [];
+            const aiVerifyCandidates = [];
+
+            // 2. Sort candidates into buckets based on score
             for (let i = 0; i < preCandidates.length; i++) {
-                const { isMatch, confidence } = validationResults[i];
+                const scoring = scoringResults[i];
+                const preCandidate = preCandidates[i];
 
-                if (isMatch && confidence > 70) {
-                    const candidate = { ...preCandidates[i], confidence };
-
-                    if (confidence >= 90 && !highConfidenceMatch) {
-                        console.log(`[Short-circuit] High confidence match (${confidence}%): ${candidate.item.product_title.substring(0, 30)}...`);
-                        highConfidenceMatch = candidate;
-                        // We could break here, but we already awaited all results. 
-                        // We will just prioritize this one and skip image verification.
-                    }
-
-                    console.log(`[Candidate] Semantic Match (${confidence}%): ${candidate.item.product_title.substring(0, 30)}... \n\n`);
-                    candidates.push(candidate);
-                    if (candidates.length >= 3 && !highConfidenceMatch) break; // Collect max 3 candidates if no high confidence match
+                if (scoring.decision === 'fast-pass') {
+                    // >= 88: High confidence, skip AI
+                    fastPassCandidates.push({
+                        ...preCandidate,
+                        confidence: Math.round(scoring.finalScore),
+                        fastPass: true
+                    });
+                    console.log(`[Fast-Pass ✓] Score ${scoring.finalScore.toFixed(1)} | ${preCandidate.item.product_title.substring(0, 40)}...`);
+                } else if (scoring.decision === 'ai-verify') {
+                    // 70 <= Score < 88: Needs AI verification
+                    aiVerifyCandidates.push(preCandidate);
                 } else {
-                    console.log(`[Filter] AI Rejected (${confidence}%): ${preCandidates[i].item.product_title.substring(0, 40)}... \n\n`);
+                    // < 70: Reject
+                    console.log(`[Reject X] Score ${scoring.finalScore.toFixed(1)} | ${preCandidate.item.product_title}`);
+                }
+            }
+
+            // 3. Process Fast-Pass Matches (Immediate Success)
+            if (fastPassCandidates.length > 0) {
+                // Determine savings for reporting?
+                console.log(`[SUCCESS] ${fastPassCandidates.length} Fast-Pass matches found. AI calls saved: ${aiVerifyCandidates.length}`);
+
+                // Sort by score descending
+                fastPassCandidates.sort((a, b) => b.confidence - a.confidence);
+
+                candidates.push(...fastPassCandidates.slice(0, 3));
+                highConfidenceMatch = fastPassCandidates[0];
+            }
+
+            // 4. Process AI-Verify Matches (Only if needed)
+            // If we have a high confidence match from Fast-Pass, we might skip this.
+            // But usually, we might want to check if AI finds something *better*? 
+            // The prompt says "88점 이상 → AI 검증 완전 스킵", so we skip if we have ANY fast-pass match?
+            // "Fast-Pass 매치가 있으면 즉시 반환 (AI 호출 완전 스킵)" -> Yes, skip AI calls entirely if fast-pass found.
+
+            if (!highConfidenceMatch && aiVerifyCandidates.length > 0) {
+                console.log(`[Stage 3] Running AI validation for ${aiVerifyCandidates.length} candidates...`);
+
+                const validationPromises = aiVerifyCandidates.map(p => {
+                    const priceRatio = p.price / numericPrice;
+                    return validateProductMatch(product.title, p.item.product_title, priceRatio);
+                });
+
+                const validationResults = await Promise.all(validationPromises);
+
+                for (let i = 0; i < aiVerifyCandidates.length; i++) {
+                    const { isMatch, confidence } = validationResults[i];
+
+                    if (isMatch && confidence > 70) {
+                        const candidate = { ...aiVerifyCandidates[i], confidence, fastPass: false };
+
+                        if (confidence >= 90 && !highConfidenceMatch) {
+                            console.log(`[AI High Confidence] ${confidence}%: ${candidate.item.product_title.substring(0, 30)}...`);
+                            highConfidenceMatch = candidate;
+                        }
+
+                        console.log(`[AI Verified ✓] ${confidence}%: ${candidate.item.product_title.substring(0, 30)}...`);
+                        candidates.push(candidate);
+                        if (candidates.length >= 3 && !highConfidenceMatch) break;
+                    } else {
+                        console.log(`[AI Rejected ✗] ${confidence}%: ${aiVerifyCandidates[i].item.product_title.substring(0, 40)}...`);
+                    }
                 }
             }
         }
