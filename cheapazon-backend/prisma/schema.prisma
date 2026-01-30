@@ -12,7 +12,7 @@ datasource db {
 
 model SourceProduct {
   id          String   @id @default(uuid())
-  asin        String   @unique
+  asin        String
   title       String
   price       Float
   currency    String
@@ -21,6 +21,8 @@ model SourceProduct {
   updatedAt   DateTime @updatedAt
   
   matchResult MatchResult?
+
+  @@unique([asin, currency])
 }
 
 model MatchResult {

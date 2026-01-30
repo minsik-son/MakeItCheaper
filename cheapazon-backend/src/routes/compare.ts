@@ -3,8 +3,6 @@ import { searchAliExpress, getAliExpressProductDetails } from '../services/aliex
 import { AmazonProduct, ComparisonResponse } from '../types';
 import prisma from '../lib/prisma';
 
-import { refreshMatchForCurrency } from '../services/currencyAdapter';
-
 const router = express.Router();
 
 router.post('/', async (req: Request, res: Response) => {
@@ -16,9 +14,14 @@ router.post('/', async (req: Request, res: Response) => {
             return;
         }
 
-        // 1. Check Cache
+        // 1. Check Cache (Now using composite key: ASIN + Currency)
         const cached = await prisma.sourceProduct.findUnique({
-            where: { asin: product.asin },
+            where: {
+                asin_currency: {
+                    asin: product.asin,
+                    currency: product.currency
+                }
+            },
             include: { matchResult: true }
         });
 
@@ -29,13 +32,12 @@ router.post('/', async (req: Request, res: Response) => {
                 const now = new Date().getTime();
                 const hoursSinceUpdate = (now - lastUpdated) / (1000 * 60 * 60);
 
-                // If compiled < 24h ago, return Not Found immediately
                 if (hoursSinceUpdate < 24) {
-                    console.log(`[Cache Hit] Negative Match (No Ali Equivalent) for ${product.asin}`);
+                    console.log(`[Cache Hit] Negative Match (No Ali Equivalent) for ${product.asin} (${product.currency})`);
                     res.json({ found: false });
                     return;
                 }
-                console.log(`[Cache Expired] Negative Match expired. Retrying search for ${product.asin}`);
+                console.log(`[Cache Expired] Negative Match expired. Retrying search for ${product.asin} (${product.currency})`);
             }
             // B. Positive Caching (Match Exists)
             else {
@@ -45,26 +47,7 @@ router.post('/', async (req: Request, res: Response) => {
 
                 // If Fresh (< 12h) -> Return Immediately
                 if (hoursDiff < 12) {
-                    console.log(`[Cache Hit] Checking currency for ${product.asin}`);
-
-                    // 1. Attempt to adapt if currency mismatch
-                    const adaptedMatch = await refreshMatchForCurrency(
-                        cached.matchResult,
-                        cached.id,
-                        product.currency,
-                        product.price
-                    );
-
-                    if (adaptedMatch) {
-                        res.json({
-                            found: true,
-                            match: adaptedMatch
-                        });
-                        return;
-                    }
-
-                    // 2. No mismatch or adaptation failed -> Return Cached
-                    console.log(`[Cache Hit] Returning valid match for ${product.asin}`);
+                    console.log(`[Cache Hit] Returning valid match for ${product.asin} (${product.currency})`);
                     const response: ComparisonResponse = {
                         found: true,
                         match: {
@@ -102,7 +85,8 @@ router.post('/', async (req: Request, res: Response) => {
                                 savings: newSavings,
                                 lastChecked: new Date(),
                                 aliTitle: refreshed.aliTitle, // Update title in case it changed slightly
-                                aliUrl: refreshed.affiliateUrl
+                                aliUrl: refreshed.affiliateUrl,
+                                currency: refreshed.currency // Ensure currency matches
                             }
                         });
 
@@ -123,13 +107,18 @@ router.post('/', async (req: Request, res: Response) => {
         // If we contain a cached entry (stale negative or stale positive with failed refresh), we update it.
         // If strict new, we create.
 
-        console.log(`[Full Search] Triggering AI Search for ${product.asin}`);
+        console.log(`[Full Search] Triggering AI Search for ${product.asin} (${product.currency})`);
         const match = await searchAliExpress(product);
 
         if (match) {
-            // Upsert Logic
+            // Upsert Logic (Using composite key)
             await prisma.sourceProduct.upsert({
-                where: { asin: product.asin },
+                where: {
+                    asin_currency: {
+                        asin: product.asin,
+                        currency: product.currency
+                    }
+                },
                 update: {
                     price: product.price,
                     updatedAt: new Date(),
@@ -179,19 +168,24 @@ router.post('/', async (req: Request, res: Response) => {
                 }
             });
         } else {
-            // Negative Match: Record that we found nothing (SourceProduct exists, MatchResult is null or deleted)
-            // If SourceProduct exists, just update timestamp.
-            // If new, create SourceProduct only.
-
-            // To handle "MatchResult could exist from previous positive", we typically delete it if we now find nothing.
-            // But usually we just update updatedAt on SourceProduct.
-
-            // First check if it exists to decide update or create
-            const existing = await prisma.sourceProduct.findUnique({ where: { asin: product.asin } });
+            // Negative Match: Record that we found nothing for this ASIN + Currency
+            const existing = await prisma.sourceProduct.findUnique({
+                where: {
+                    asin_currency: {
+                        asin: product.asin,
+                        currency: product.currency
+                    }
+                }
+            });
 
             if (existing) {
                 await prisma.sourceProduct.update({
-                    where: { asin: product.asin },
+                    where: {
+                        asin_currency: {
+                            asin: product.asin,
+                            currency: product.currency
+                        }
+                    },
                     data: {
                         updatedAt: new Date(),
                         price: product.price
