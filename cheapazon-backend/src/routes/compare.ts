@@ -3,6 +3,8 @@ import { searchAliExpress, getAliExpressProductDetails } from '../services/aliex
 import { AmazonProduct, ComparisonResponse } from '../types';
 import prisma from '../lib/prisma';
 
+import { refreshMatchForCurrency } from '../services/currencyAdapter';
+
 const router = express.Router();
 
 router.post('/', async (req: Request, res: Response) => {
@@ -43,6 +45,25 @@ router.post('/', async (req: Request, res: Response) => {
 
                 // If Fresh (< 12h) -> Return Immediately
                 if (hoursDiff < 12) {
+                    console.log(`[Cache Hit] Checking currency for ${product.asin}`);
+
+                    // 1. Attempt to adapt if currency mismatch
+                    const adaptedMatch = await refreshMatchForCurrency(
+                        cached.matchResult,
+                        cached.id,
+                        product.currency,
+                        product.price
+                    );
+
+                    if (adaptedMatch) {
+                        res.json({
+                            found: true,
+                            match: adaptedMatch
+                        });
+                        return;
+                    }
+
+                    // 2. No mismatch or adaptation failed -> Return Cached
                     console.log(`[Cache Hit] Returning valid match for ${product.asin}`);
                     const response: ComparisonResponse = {
                         found: true,
