@@ -30,3 +30,8 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# 이미지
+Image/
+**/Image/
+

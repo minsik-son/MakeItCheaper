@@ -21,7 +21,7 @@ const Toast: React.FC<ToastProps> = ({ match, onClose }) => {
 
     return (
         <div className="w-full max-w-sm animate-slide-in">
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl overflow-hidden border border-white/20 ring-1 ring-black/5 font-sans">
+            <div className="bg-white backdrop-blur-sm rounded-xl shadow-2xl overflow-hidden border border-white/20 ring-1 ring-black/5 font-sans">
                 {/* Gradient Accent Bar */}
                 <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 to-red-500"></div>
 
@@ -50,7 +50,7 @@ const Toast: React.FC<ToastProps> = ({ match, onClose }) => {
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="bg-gradient-to-r from-orange-500 to-red-600 text-transparent bg-clip-text text-xs font-black uppercase tracking-wider">
-                                    Cheaper Match Found
+                                    FOUND IT CHEAPER
                                 </span>
                             </div>
 
