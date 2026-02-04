@@ -1,8 +1,14 @@
 {
     "manifest_version": 3,
     "name": "Deep Match",
-    "version": "1.0.0",
-    "description": "Amazon-AliExpress Price Optimizer",
+    "version": "1.0.1",
+    "description": "Automatically find the absolute lowest prices while you shop.",
+    "icons": {
+        "16": "icon16.png",
+        "32": "icon32.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    },
     "permissions": [
         "activeTab",
         "scripting",
@@ -10,8 +16,7 @@
     ],
     "host_permissions": [
         "*://*.amazon.com/*",
-        "*://*.amazon.ca/*",
-        "http://localhost:3000/*"
+        "*://*.amazon.ca/*"
     ],
     "action": {
         "default_popup": "index.html"

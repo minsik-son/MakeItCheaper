@@ -27,25 +27,6 @@ export const extractKeywords = async (fullTitle: string): Promise<string> => {
             generationConfig: { responseMimeType: "application/json" }
         });
 
-        /*
-        const prompt = `You are an expert AliExpress Sourcing Agent. Your goal is to find the original OEM factory version of an Amazon product on AliExpress.
-
-        Analyze the Amazon Product Title: "${fullTitle}"
-
-        Extraction Rules:
-        1. **IGNORE PRIVATE LABELS**: Remove brands that are likely Amazon-only private labels or dropshipping brands (e.g., WOLFBOX, ANRABESS, Umite Chef). ONLY keep major global brands (e.g., Nike, Samsung, Lego, Tesla, Bicycle).
-        2. **PRIORITIZE SPECS**: You MUST include key technical specifications (numbers) that define the product identity (e.g., "4000A", "160PSI", "26QT", "65L", "48 Amp").
-        3. **IDENTIFY CORE ITEM**: Isolate the generic product name (e.g., "Jump Starter", "Duffle Bag", "Floor Mats").
-        4. **COMPATIBILITY IS KEY**: If the item is an accessory, KEEP the "For [Model]" part (e.g., "For Tesla Model Y", "For iPhone").
-        5. **REMOVE FLUFF**: Remove subjective marketing words (Premium, Gift for men, High Quality, 2025 Fall, Upgraded).
-        6. **OUTPUT FORMAT**: Return a single string of 3 to 6 keywords tailored for the AliExpress search engine.
-
-        Search Query: ${fullTitle}
-        Return JSON with a single key "keywords".
-        `;
-
-        */
-
         const prompt = `You are an expert AliExpress Sourcing Agent specializing in identifying OEM factory products.
         Your goal is to transform a cluttered Amazon title into a high-converting AliExpress search query.
 
@@ -98,59 +79,6 @@ export const extractKeywords = async (fullTitle: string): Promise<string> => {
     }
 };
 
-/*
-export const validateProductMatch = async (amazonTitle: string, aliTitle: string, priceRatio: number): Promise<{ isMatch: boolean; confidence: number }> => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return { isMatch: true, confidence: 50 }; // Fail open with low confidence
-
-    try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash-lite",
-            generationConfig: { responseMimeType: "application/json" }
-        });
-
-        const prompt = `
-        You are a strict e-commerce validation bot.
-        Determine if these two product titles refer to the SAME core product category and type.
-        
-        Context:
-        - We are trying to find a cheaper alternative for the Amazon product on AliExpress.
-        - The AliExpress price is ${Math.round(priceRatio * 100)}% of the Amazon price.
-        
-        Compare:
-        1. Amazon: "${amazonTitle}"
-        2. AliExpress: "${aliTitle}"
-        
-        Rules:
-        - If one is a "Case", "Cover", "Screen Protector", "Accessory" and the other is the main device (Phone, Tablet), confidence should be 0.
-        - If they are completely different items (e.g. Mouse vs Graphic Card), confidence should be 0.
-        - If they are the same product (or very similar alternative), confidence > 80.
-        - If they are the EXACT same model (very high certainty), confidence > 90.
-        
-        Output JSON with keys:
-        - "match": boolean (YES/NO -> true/false)
-        - "confidence": number (0-100)
-        - "reason": string (short explanation)
-        `;
-
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
-        const json = JSON.parse(text);
-
-        console.log(`AI Validation: ${json.match} (${json.confidence}%) | Amz: ${amazonTitle.substring(0, 20)}... vs Ali: ${aliTitle.substring(0, 20)}...`);
-
-        return {
-            isMatch: json.match === true || (typeof json.match === 'string' && json.match.toUpperCase() === 'YES'),
-            confidence: json.confidence || 0
-        };
-
-    } catch (error) {
-        console.error('Gemini Validation Error:', error);
-        return { isMatch: true, confidence: 50 };
-    }
-};
-*/
 
 export const validateProductMatch = async (amazonTitle: string, aliTitle: string, priceRatio: number): Promise<{ isMatch: boolean; confidence: number }> => {
     const apiKey = process.env.GEMINI_API_KEY;

@@ -45,10 +45,10 @@ export const getAliExpressProductDetails = async (aliProductId: string, currency
             headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' }
         });
 
-        // 로그를 위한 data
+        // Store response data for logging
         const data = response.data;
 
-        // --- 여기서부터 로그 추가 ---
+        // --- API Response Logging Start ---
         console.log("==== AliExpress Raw Search Results ====");
         const rawProducts = data.aliexpress_affiliate_product_query_response?.resp_result?.result?.products?.product;
         if (rawProducts) {

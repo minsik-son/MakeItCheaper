@@ -30,7 +30,7 @@ const corsOptions: cors.CorsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  // Preflight 요청이 제대로 처리되도록 메서드와 헤더를 명시합니다.
+  // Specify methods and headers for preflight requests to work correctly.
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -42,7 +42,7 @@ app.use(express.json());
 app.use('/api/compare', compareRouter);
 
 app.get('/', (req, res) => {
-  // 현재 어떤 Origin이 헤더에 들어왔는지 출력
+  // Log the Origin header from the current request.
   console.log("Request Method:", req.method);
   console.log("Request Origin Header:", req.headers.origin);
   res.send('Deep Match Backend is running');
